@@ -65,7 +65,7 @@ function PersonModal({
   user: UserData;
   onClose: () => void;
   mySchedule?: ScheduleEntry[];
-  mySchool?: number;
+  mySchool?: string;
 }) {
   const sharedPeriods =
     mySchedule && mySchool === user.school
