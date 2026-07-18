@@ -4,7 +4,7 @@ import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import ScheduleBuilder from '@/components/ScheduleBuilder';
-import { SUBJECT_COLORS, PERIOD_LABELS } from '@/lib/constants';
+import { SUBJECT_COLORS, PERIOD_LABELS, SCHOOLS, SCHOOL_COLORS, SchoolId } from '@/lib/constants';
 
 type Step = 'info' | 'schedule' | 'confirm';
 
@@ -16,7 +16,7 @@ function AddPageInner() {
   const [step, setStep] = useState<Step>('info');
   const [firstName, setFirstName] = useState('');
   const [lastInitial, setLastInitial] = useState('');
-  const [school, setSchool] = useState<1 | 2 | null>(null);
+  const [school, setSchool] = useState<SchoolId | null>(null);
   const name = `${firstName.trim()} ${lastInitial.trim().toUpperCase()}`.trim();
   const [userId, setUserId] = useState<string | null>(null);
   const [pendingSchedule, setPendingSchedule] = useState<Partial<Record<number, string>>>({});
@@ -40,7 +40,7 @@ function AddPageInner() {
         const parts = me.name.split(' ');
         setFirstName(parts.slice(0, -1).join(' ') || me.name);
         setLastInitial(parts[parts.length - 1] ?? '');
-        setSchool(me.school as 1 | 2);
+        setSchool(me.school as SchoolId);
         setUserId(me.id);
 
         const sched: Partial<Record<number, string>> = {};
@@ -200,15 +200,17 @@ function AddPageInner() {
               )}
             </div>
             <div className="mb-6">
-              <label className="block text-sm font-semibold text-gray-700 mb-3">Which school are you at?</label>
+              <label className="block text-sm font-semibold text-gray-700 mb-3">Which elementary school are you in?</label>
               <div className="grid grid-cols-2 gap-3">
-                {([1, 2] as const).map(s => (
-                  <button key={s} type="button" onClick={() => setSchool(s)}
-                    className={`p-4 rounded-xl border-2 font-bold text-lg transition ${school === s
-                      ? s === 1 ? 'border-indigo-500 bg-indigo-50 text-indigo-700' : 'border-emerald-500 bg-emerald-50 text-emerald-700'
-                      : 'border-gray-200 text-gray-500 hover:border-gray-300 hover:bg-gray-50'}`}
+                {SCHOOLS.map(s => (
+                  <button key={s.id} type="button" onClick={() => setSchool(s.id as SchoolId)}
+                    className={`p-4 rounded-xl border-2 font-bold text-lg transition ${
+                      school === s.id
+                        ? SCHOOL_COLORS[s.id].button
+                        : 'border-gray-200 text-gray-500 hover:border-gray-300 hover:bg-gray-50'
+                    }`}
                   >
-                    School {s} {school === s && '✓'}
+                    {s.label} {school === s.id && '✓'}
                   </button>
                 ))}
               </div>
@@ -226,7 +228,7 @@ function AddPageInner() {
             {stepIndicator}
             <div className="mb-5 text-sm text-gray-600 bg-gray-50 rounded-xl px-4 py-3">
               Schedule for <span className="font-bold text-gray-800">{name}</span>{' '}
-              · <span className={`font-semibold ${school === 1 ? 'text-indigo-600' : 'text-emerald-600'}`}>School {school}</span>
+              · <span className={`font-semibold inline-block px-2 py-0.5 rounded-full text-xs ${school ? SCHOOL_COLORS[school].badge : ''}`}>{school === 'new' ? "I'm new" : school}</span>
             </div>
             <ScheduleBuilder
               onSave={handleScheduleReady}
@@ -242,7 +244,7 @@ function AddPageInner() {
             {stepIndicator}
             <div className="mb-5 text-sm text-gray-600 bg-gray-50 rounded-xl px-4 py-3">
               <span className="font-bold text-gray-800">{name}</span>{' '}
-              · <span className={`font-semibold ${school === 1 ? 'text-indigo-600' : 'text-emerald-600'}`}>School {school}</span>
+              · <span className={`font-semibold inline-block px-2 py-0.5 rounded-full text-xs ${school ? SCHOOL_COLORS[school].badge : ''}`}>{school === 'new' ? "I'm new" : school}</span>
             </div>
             <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Your Schedule</h3>
             <div className="space-y-2 mb-6">

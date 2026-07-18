@@ -11,9 +11,9 @@ export async function GET() {
 
 export async function POST(req: Request) {
   const body = await req.json();
-  const { name, school } = body as { name: string; school: number };
+  const { name, school } = body as { name: string; school: string };
 
-  if (!name?.trim() || ![1, 2].includes(school)) {
+  if (!name?.trim() || !['PCY', 'PCR', 'LCE', 'new'].includes(school)) {
     return NextResponse.json({ error: 'Invalid input' }, { status: 400 });
   }
 

@@ -2,13 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { SUBJECT_COLORS, PERIOD_LABELS } from '@/lib/constants';
+import { SUBJECT_COLORS, PERIOD_LABELS, SCHOOLS, SCHOOL_COLORS } from '@/lib/constants';
 
 type ScheduleEntry = { period: number; subject: string };
 type UserData = {
   id: string;
   name: string;
-  school: number;
+  school: string;
   createdAt: string;
   schedule: ScheduleEntry[];
 };
@@ -41,8 +41,8 @@ function ScheduleRow({ user, onDelete }: { user: UserData; onDelete: () => void 
           <div className="min-w-0">
             <div className="flex items-center gap-2">
               <span className="font-bold text-gray-900">{user.name}</span>
-              <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${user.school === 1 ? 'bg-indigo-100 text-indigo-700' : 'bg-emerald-100 text-emerald-700'}`}>
-                School {user.school}
+              <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${SCHOOL_COLORS[user.school]?.badge ?? 'bg-gray-100 text-gray-500'}`}>
+                {user.school === 'new' ? "I'm new" : user.school}
               </span>
             </div>
             <p className="text-xs text-gray-400 mt-0.5">
@@ -95,7 +95,7 @@ export default function AdminPage() {
   const [users, setUsers] = useState<UserData[]>([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
-  const [schoolFilter, setSchoolFilter] = useState<0 | 1 | 2>(0);
+  const [schoolFilter, setSchoolFilter] = useState<string>('');
 
   useEffect(() => {
     if (sessionStorage.getItem('admin_authed') === 'true') {
@@ -172,11 +172,10 @@ export default function AdminPage() {
   }
 
   const filtered = users
-    .filter(u => schoolFilter === 0 || u.school === schoolFilter)
+    .filter(u => schoolFilter === '' || u.school === schoolFilter)
     .filter(u => !search.trim() || u.name.toLowerCase().includes(search.toLowerCase()));
 
-  const school1Count = users.filter(u => u.school === 1).length;
-  const school2Count = users.filter(u => u.school === 2).length;
+  const schoolCounts = SCHOOLS.map(s => ({ ...s, count: users.filter(u => u.school === s.id).length }));
 
   return (
     <main className="min-h-screen bg-gray-50">
@@ -196,15 +195,15 @@ export default function AdminPage() {
         </div>
 
         {/* Stats */}
-        <div className="mt-5 max-w-3xl mx-auto grid grid-cols-3 gap-3">
-          {[
-            { label: 'Total Students', value: users.length },
-            { label: 'School 1', value: school1Count },
-            { label: 'School 2', value: school2Count },
-          ].map(stat => (
-            <div key={stat.label} className="bg-white/10 rounded-2xl px-4 py-3 text-center">
-              <p className="text-2xl font-extrabold">{stat.value}</p>
-              <p className="text-xs text-gray-400 mt-0.5">{stat.label}</p>
+        <div className="mt-5 max-w-3xl mx-auto grid grid-cols-5 gap-2">
+          <div className="bg-white/10 rounded-2xl px-3 py-3 text-center">
+            <p className="text-2xl font-extrabold">{users.length}</p>
+            <p className="text-xs text-gray-400 mt-0.5">Total</p>
+          </div>
+          {schoolCounts.map(s => (
+            <div key={s.id} className="bg-white/10 rounded-2xl px-3 py-3 text-center">
+              <p className="text-2xl font-extrabold">{s.count}</p>
+              <p className="text-xs text-gray-400 mt-0.5">{s.label}</p>
             </div>
           ))}
         </div>
@@ -226,13 +225,19 @@ export default function AdminPage() {
             />
           </div>
           <div className="flex gap-1 bg-white rounded-full shadow-md px-2 border border-gray-100 items-center">
-            {([0, 1, 2] as const).map(s => (
+            <button
+              onClick={() => setSchoolFilter('')}
+              className={`px-3 py-1.5 rounded-full text-xs font-semibold transition ${schoolFilter === '' ? 'bg-indigo-600 text-white' : 'text-gray-500 hover:bg-gray-100'}`}
+            >
+              All
+            </button>
+            {SCHOOLS.map(s => (
               <button
-                key={s}
-                onClick={() => setSchoolFilter(s)}
-                className={`px-3 py-1.5 rounded-full text-xs font-semibold transition ${schoolFilter === s ? 'bg-indigo-600 text-white' : 'text-gray-500 hover:bg-gray-100'}`}
+                key={s.id}
+                onClick={() => setSchoolFilter(schoolFilter === s.id ? '' : s.id)}
+                className={`px-3 py-1.5 rounded-full text-xs font-semibold transition ${schoolFilter === s.id ? SCHOOL_COLORS[s.id].badge : 'text-gray-500 hover:bg-gray-100'}`}
               >
-                {s === 0 ? 'All' : `S${s}`}
+                {s.label}
               </button>
             ))}
           </div>

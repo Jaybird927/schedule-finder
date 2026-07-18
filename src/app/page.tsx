@@ -2,13 +2,13 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
-import { SUBJECTS, SUBJECT_COLORS, PERIOD_LABELS } from '@/lib/constants';
+import { SUBJECTS, SUBJECT_COLORS, PERIOD_LABELS, SCHOOLS, SCHOOL_COLORS } from '@/lib/constants';
 
 type ScheduleEntry = { period: number; subject: string };
 type UserData = {
   id: string;
   name: string;
-  school: number;
+  school: string;
   createdAt: string;
   schedule: ScheduleEntry[];
 };
@@ -37,14 +37,8 @@ function PersonCard({ user, onClick }: { user: UserData; onClick: () => void }) 
     >
       <div className="flex items-start justify-between gap-2 mb-2">
         <h3 className="font-bold text-gray-900 text-base leading-tight truncate">{user.name}</h3>
-        <span
-          className={`text-xs font-semibold px-2 py-0.5 rounded-full flex-shrink-0 ${
-            user.school === 1
-              ? 'bg-indigo-100 text-indigo-700'
-              : 'bg-emerald-100 text-emerald-700'
-          }`}
-        >
-          S{user.school}
+        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full flex-shrink-0 ${SCHOOL_COLORS[user.school]?.badge ?? 'bg-gray-100 text-gray-500'}`}>
+          {user.school === 'new' ? 'New' : user.school}
         </span>
       </div>
       <div className="flex flex-wrap gap-1 mt-1">
@@ -94,17 +88,11 @@ function PersonModal({
         onClick={(e) => e.stopPropagation()}
       >
         {/* Modal header */}
-        <div
-          className={`p-6 ${
-            user.school === 1
-              ? 'bg-gradient-to-r from-indigo-500 to-purple-500'
-              : 'bg-gradient-to-r from-emerald-500 to-teal-500'
-          } text-white`}
-        >
+        <div className={`p-6 bg-gradient-to-r ${SCHOOL_COLORS[user.school]?.modal ?? 'from-gray-400 to-gray-500'} text-white`}>
           <div className="flex items-start justify-between">
             <div>
               <h2 className="text-2xl font-extrabold">{user.name}</h2>
-              <p className="text-white/70 mt-0.5 text-sm">School {user.school}</p>
+              <p className="text-white/70 mt-0.5 text-sm">{user.school === 'new' ? "I'm new" : user.school}</p>
             </div>
             <button
               onClick={onClose}
@@ -174,7 +162,7 @@ export default function HomePage() {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [myUserId, setMyUserId] = useState<string | null>(null);
 
-  const [schoolFilter, setSchoolFilter] = useState<0 | 1 | 2>(0);
+  const [schoolFilter, setSchoolFilter] = useState<string>('');
   const [subjectFilters, setSubjectFilters] = useState<string[]>([]);
   const [duringPeriod, setDuringPeriod] = useState<number | null>(null);
   const [sortBy, setSortBy] = useState<SortOption>('newest');
@@ -200,7 +188,7 @@ export default function HomePage() {
   const myUser = users.find((u) => u.id === myUserId);
 
   const activeFilterCount =
-    (schoolFilter !== 0 ? 1 : 0) +
+    (schoolFilter !== '' ? 1 : 0) +
     subjectFilters.length +
     (subjectFilters.length > 0 && duringPeriod !== null ? 1 : 0) +
     (classmatesOnly ? 1 : 0);
@@ -213,7 +201,7 @@ export default function HomePage() {
       result = result.filter((u) => u.name.toLowerCase().includes(q));
     }
 
-    if (schoolFilter !== 0) {
+    if (schoolFilter !== '') {
       result = result.filter((u) => u.school === schoolFilter);
     }
 
@@ -250,7 +238,7 @@ export default function HomePage() {
   }, [users, search, schoolFilter, subjectFilters, duringPeriod, sortBy, classmatesOnly, myUser, myUserId]);
 
   const clearFilters = () => {
-    setSchoolFilter(0);
+    setSchoolFilter('');
     setSubjectFilters([]);
     setDuringPeriod(null);
     setClassmatesOnly(false);
@@ -268,7 +256,7 @@ export default function HomePage() {
           <div className="mt-5 flex flex-wrap items-center gap-2">
             <div className="bg-white/20 rounded-2xl px-4 py-2 text-sm backdrop-blur">
               Logged in as <span className="font-bold">{myUser.name}</span>{' '}
-              <span className="text-white/60">· School {myUser.school}</span>
+              <span className="text-white/60">· {myUser.school === 'new' ? "I'm new" : myUser.school}</span>
             </div>
             <Link
               href="/add?edit=true"
@@ -343,21 +331,25 @@ export default function HomePage() {
         <div className="mx-4 mb-3 p-5 bg-white rounded-2xl shadow-md border border-gray-100">
           {/* School */}
           <div className="mb-4">
-            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">
-              School
-            </p>
-            <div className="flex gap-2">
-              {([0, 1, 2] as const).map((s) => (
+            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">School</p>
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => setSchoolFilter('')}
+                className={`px-3 py-1.5 rounded-full text-sm font-medium border transition ${schoolFilter === '' ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}
+              >
+                All
+              </button>
+              {SCHOOLS.map(s => (
                 <button
-                  key={s}
-                  onClick={() => setSchoolFilter(s)}
+                  key={s.id}
+                  onClick={() => setSchoolFilter(schoolFilter === s.id ? '' : s.id)}
                   className={`px-3 py-1.5 rounded-full text-sm font-medium border transition ${
-                    schoolFilter === s
-                      ? 'bg-indigo-600 text-white border-indigo-600'
+                    schoolFilter === s.id
+                      ? SCHOOL_COLORS[s.id].badge + ' border-current'
                       : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
                   }`}
                 >
-                  {s === 0 ? 'All Schools' : `School ${s}`}
+                  {s.label}
                 </button>
               ))}
             </div>
