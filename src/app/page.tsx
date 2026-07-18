@@ -271,7 +271,7 @@ export default function HomePage() {
               <span className="text-white/60">· School {myUser.school}</span>
             </div>
             <Link
-              href="/add"
+              href="/add?edit=true"
               className="bg-white text-indigo-600 font-semibold px-4 py-2 rounded-full text-sm hover:bg-indigo-50 transition shadow"
             >
               Edit Schedule

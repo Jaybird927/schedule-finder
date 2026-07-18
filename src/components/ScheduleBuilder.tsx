@@ -105,11 +105,13 @@ function PeriodSlot({
 export default function ScheduleBuilder({
   onSave,
   saving,
+  initialSchedule = {},
 }: {
   onSave: (schedule: Schedule) => void;
   saving: boolean;
+  initialSchedule?: Schedule;
 }) {
-  const [schedule, setSchedule] = useState<Schedule>({});
+  const [schedule, setSchedule] = useState<Schedule>(initialSchedule);
   const [activeSubject, setActiveSubject] = useState<string | null>(null);
 
   const sensors = useSensors(
