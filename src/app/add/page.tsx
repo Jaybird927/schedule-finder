@@ -21,7 +21,11 @@ function AddPageInner() {
   const name = `${firstName.trim()} ${lastInitial.trim().toUpperCase()}`.trim();
   const [userId, setUserId] = useState<string | null>(null);
   const [pendingSchedule, setPendingSchedule] = useState<Partial<Record<number, string>>>({});
+  const [pendingElective1, setPendingElective1] = useState('');
+  const [pendingElective2, setPendingElective2] = useState('');
   const [existingSchedule, setExistingSchedule] = useState<Partial<Record<number, string>>>({});
+  const [existingElective1, setExistingElective1] = useState('');
+  const [existingElective2, setExistingElective2] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [loadingEdit, setLoadingEdit] = useState(isEditing);
@@ -34,7 +38,7 @@ function AddPageInner() {
 
     fetch('/api/users')
       .then(r => r.json())
-      .then((users: { id: string; name: string; school: string; currentSchool: number; schedule: { period: number; subject: string }[] }[]) => {
+      .then((users: { id: string; name: string; school: string; currentSchool: number; elective1Name?: string; elective2Name?: string; schedule: { period: number; subject: string }[] }[]) => {
         const me = users.find(u => u.id === id);
         if (!me) { router.push('/add'); return; }
 
@@ -43,6 +47,8 @@ function AddPageInner() {
         setLastInitial(parts[parts.length - 1] ?? '');
         setSchool(me.school as SchoolId);
         setCurrentSchool(me.currentSchool as 1 | 2);
+        setExistingElective1(me.elective1Name ?? '');
+        setExistingElective2(me.elective2Name ?? '');
         setUserId(me.id);
 
         const sched: Partial<Record<number, string>> = {};
@@ -77,8 +83,10 @@ function AddPageInner() {
     }
   }
 
-  function handleScheduleReady(schedule: Partial<Record<number, string>>) {
+  function handleScheduleReady(schedule: Partial<Record<number, string>>, elective1Name: string, elective2Name: string) {
     setPendingSchedule(schedule);
+    setPendingElective1(elective1Name);
+    setPendingElective2(elective2Name);
     setStep('confirm');
   }
 
@@ -90,7 +98,7 @@ function AddPageInner() {
       const res = await fetch('/api/schedule', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, schedule: pendingSchedule }),
+        body: JSON.stringify({ userId, schedule: pendingSchedule, elective1Name: pendingElective1, elective2Name: pendingElective2 }),
       });
       if (!res.ok) throw new Error();
       localStorage.setItem('schedule_userId', userId);
@@ -253,6 +261,8 @@ function AddPageInner() {
               onSave={handleScheduleReady}
               saving={false}
               initialSchedule={existingSchedule}
+              initialElective1Name={existingElective1}
+              initialElective2Name={existingElective2}
             />
           </div>
         )}
@@ -272,10 +282,11 @@ function AddPageInner() {
                 return (
                   <div key={period} className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-gray-50">
                     <span className="text-xs font-medium text-gray-400 w-24 flex-shrink-0">{PERIOD_LABELS[period]}</span>
-                    {subject
-                      ? <span className={`inline-block border rounded-full px-3 py-1 text-sm font-medium ${SUBJECT_COLORS[subject]}`}>{subject}</span>
-                      : <span className="text-xs text-gray-300 italic">N/A</span>
-                    }
+                    {subject ? (
+                      <span className={`inline-block border rounded-full px-3 py-1 text-sm font-medium ${SUBJECT_COLORS[subject] ?? 'bg-gray-100 text-gray-700 border-gray-300'}`}>
+                        {subject === 'Elective 1' && pendingElective1 ? pendingElective1 : subject === 'Elective 2' && pendingElective2 ? pendingElective2 : subject}
+                      </span>
+                    ) : <span className="text-xs text-gray-300 italic">N/A</span>}
                   </div>
                 );
               })}

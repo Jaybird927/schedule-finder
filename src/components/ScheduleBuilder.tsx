@@ -46,58 +46,58 @@ function DraggableSubject({ subject, isPlaced }: { subject: string; isPlaced: bo
 function PeriodSlot({
   period,
   subject,
+  electiveName,
   onRemove,
+  onElectiveNameChange,
 }: {
   period: number;
   subject?: string;
+  electiveName?: string;
   onRemove: () => void;
+  onElectiveNameChange?: (name: string) => void;
 }) {
   const { isOver, setNodeRef } = useDroppable({ id: `period-${period}` });
   const isZero = period === 0;
+  const isElective = subject === 'Elective 1' || subject === 'Elective 2';
 
   return (
     <div
       ref={setNodeRef}
-      className={`flex items-center gap-3 px-3 py-2.5 rounded-xl border-2 transition-all
-        ${
-          isOver
-            ? 'border-indigo-400 bg-indigo-50 scale-[1.01]'
-            : subject
-            ? 'border-gray-200 bg-gray-50'
-            : 'border-dashed border-gray-200 bg-white'
-        }`}
+      className={`px-3 py-2.5 rounded-xl border-2 transition-all
+        ${isOver ? 'border-indigo-400 bg-indigo-50 scale-[1.01]' : subject ? 'border-gray-200 bg-gray-50' : 'border-dashed border-gray-200 bg-white'}`}
     >
-      <div className="flex-shrink-0 w-24">
-        <span className="text-xs font-bold text-gray-500">{PERIOD_LABELS[period]}</span>
-        {isZero && !subject && (
-          <p className="text-xs text-gray-300 leading-tight mt-0.5">optional</p>
-        )}
+      <div className="flex items-center gap-3">
+        <div className="flex-shrink-0 w-24">
+          <span className="text-xs font-bold text-gray-500">{PERIOD_LABELS[period]}</span>
+          {isZero && !subject && (
+            <p className="text-xs text-gray-300 leading-tight mt-0.5">optional</p>
+          )}
+        </div>
+        <div className="flex-1 min-w-0">
+          {subject ? (
+            <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium border ${SUBJECT_COLORS[subject] ?? 'bg-gray-100 text-gray-700 border-gray-300'}`}>
+              <span className="truncate">{electiveName || subject}</span>
+              <button onClick={onRemove} className="w-4 h-4 rounded-full flex items-center justify-center hover:bg-black/10 text-current leading-none flex-shrink-0" title="Remove">×</button>
+            </div>
+          ) : (
+            <span className={`text-xs italic ${isOver ? 'text-indigo-400 font-medium' : 'text-gray-300'}`}>
+              {isOver ? 'Drop here!' : isZero ? 'N/A — drag here to add' : 'Drop a subject here'}
+            </span>
+          )}
+        </div>
       </div>
 
-      <div className="flex-1 min-w-0">
-        {subject ? (
-          <div
-            className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium border ${SUBJECT_COLORS[subject]}`}
-          >
-            <span className="truncate">{subject}</span>
-            <button
-              onClick={onRemove}
-              className="w-4 h-4 rounded-full flex items-center justify-center hover:bg-black/10 text-current leading-none flex-shrink-0"
-              title="Remove"
-            >
-              ×
-            </button>
-          </div>
-        ) : (
-          <span
-            className={`text-xs italic ${
-              isOver ? 'text-indigo-400 font-medium' : 'text-gray-300'
-            }`}
-          >
-            {isOver ? 'Drop here!' : isZero ? 'N/A — drag here to add' : 'Drop a subject here'}
-          </span>
-        )}
-      </div>
+      {isElective && (
+        <div className="mt-2 ml-27 pl-24">
+          <input
+            type="text"
+            value={electiveName ?? ''}
+            onChange={e => onElectiveNameChange?.(e.target.value)}
+            placeholder={`What is your ${subject}?`}
+            className="w-full px-3 py-1.5 text-sm rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-300 bg-white"
+          />
+        </div>
+      )}
     </div>
   );
 }
@@ -106,12 +106,18 @@ export default function ScheduleBuilder({
   onSave,
   saving,
   initialSchedule = {},
+  initialElective1Name = '',
+  initialElective2Name = '',
 }: {
-  onSave: (schedule: Schedule) => void;
+  onSave: (schedule: Schedule, elective1Name: string, elective2Name: string) => void;
   saving: boolean;
   initialSchedule?: Schedule;
+  initialElective1Name?: string;
+  initialElective2Name?: string;
 }) {
   const [schedule, setSchedule] = useState<Schedule>(initialSchedule);
+  const [elective1Name, setElective1Name] = useState(initialElective1Name);
+  const [elective2Name, setElective2Name] = useState(initialElective2Name);
   const [activeSubject, setActiveSubject] = useState<string | null>(null);
 
   const sensors = useSensors(
@@ -149,7 +155,12 @@ export default function ScheduleBuilder({
 
   const mandatoryPlaced = MANDATORY_SUBJECTS.every((s) => placedSubjects.has(s));
   const period1to6Filled = [1, 2, 3, 4, 5, 6].every((p) => schedule[p]);
-  const canSave = mandatoryPlaced && period1to6Filled;
+  const elective1Placed = placedSubjects.has('Elective 1');
+  const elective2Placed = placedSubjects.has('Elective 2');
+  const electiveNamesMissing =
+    (elective1Placed && !elective1Name.trim()) ||
+    (elective2Placed && !elective2Name.trim());
+  const canSave = mandatoryPlaced && period1to6Filled && !electiveNamesMissing;
 
   const missingMandatory = MANDATORY_SUBJECTS.filter((s) => !placedSubjects.has(s));
   const missingPeriods = [1, 2, 3, 4, 5, 6].filter((p) => !schedule[p]);
@@ -184,20 +195,31 @@ export default function ScheduleBuilder({
             {filledCount === 0 ? 'Nothing placed yet' : `${filledCount} / 7 periods filled`}
           </p>
           <div className="flex flex-col gap-2">
-            {[0, 1, 2, 3, 4, 5, 6].map((period) => (
-              <PeriodSlot
-                key={period}
-                period={period}
-                subject={schedule[period]}
-                onRemove={() =>
-                  setSchedule((prev) => {
-                    const next = { ...prev };
-                    delete next[period];
-                    return next;
-                  })
-                }
-              />
-            ))}
+            {[0, 1, 2, 3, 4, 5, 6].map((period) => {
+              const subject = schedule[period];
+              const electiveName =
+                subject === 'Elective 1' ? elective1Name :
+                subject === 'Elective 2' ? elective2Name : undefined;
+              return (
+                <PeriodSlot
+                  key={period}
+                  period={period}
+                  subject={subject}
+                  electiveName={electiveName}
+                  onElectiveNameChange={
+                    subject === 'Elective 1' ? setElective1Name :
+                    subject === 'Elective 2' ? setElective2Name : undefined
+                  }
+                  onRemove={() =>
+                    setSchedule((prev) => {
+                      const next = { ...prev };
+                      delete next[period];
+                      return next;
+                    })
+                  }
+                />
+              );
+            })}
           </div>
         </div>
       </div>
@@ -209,12 +231,14 @@ export default function ScheduleBuilder({
             <p>Still need to place: {missingMandatory.join(', ')}</p>
           ) : missingPeriods.length > 0 ? (
             <p>Periods {missingPeriods.join(', ')} are still empty</p>
+          ) : electiveNamesMissing ? (
+            <p>Fill in the name{elective1Placed && !elective1Name.trim() && elective2Placed && !elective2Name.trim() ? 's' : ''} for your elective{elective1Placed && !elective1Name.trim() && elective2Placed && !elective2Name.trim() ? 's' : ''}</p>
           ) : null}
         </div>
       )}
 
       <button
-        onClick={() => canSave && !saving && onSave(schedule)}
+        onClick={() => canSave && !saving && onSave(schedule, elective1Name.trim(), elective2Name.trim())}
         disabled={!canSave || saving}
         className="mt-6 w-full py-3 rounded-full font-bold text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed transition"
       >

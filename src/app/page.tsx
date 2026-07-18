@@ -10,24 +10,32 @@ type UserData = {
   name: string;
   school: string;
   currentSchool: number;
+  elective1Name?: string | null;
+  elective2Name?: string | null;
   createdAt: string;
   schedule: ScheduleEntry[];
 };
 
-function SubjectChip({ subject, small }: { subject: string; small?: boolean }) {
+function resolveSubject(subject: string, user: UserData) {
+  if (subject === 'Elective 1' && user.elective1Name) return user.elective1Name;
+  if (subject === 'Elective 2' && user.elective2Name) return user.elective2Name;
+  return subject;
+}
+
+function SubjectChip({ subject, label, small }: { subject: string; label?: string; small?: boolean }) {
   return (
     <span
       className={`inline-block border rounded-full font-medium ${
         small ? 'px-2 py-0.5 text-xs' : 'px-3 py-1 text-sm'
-      } ${SUBJECT_COLORS[subject]}`}
+      } ${SUBJECT_COLORS[subject] ?? 'bg-gray-100 text-gray-700 border-gray-300'}`}
     >
-      {subject}
+      {label ?? subject}
     </span>
   );
 }
 
 function PersonCard({ user, onClick }: { user: UserData; onClick: () => void }) {
-  const subjects = user.schedule.map((s) => s.subject);
+  const subjects = user.schedule.map((s) => resolveSubject(s.subject, user));
   const displaySubjects = subjects.slice(0, 4);
   const extra = subjects.length - 4;
 
@@ -140,7 +148,7 @@ function PersonModal({
                       {PERIOD_LABELS[period]}
                     </span>
                     {entry ? (
-                      <SubjectChip subject={entry.subject} />
+                      <SubjectChip subject={entry.subject} label={resolveSubject(entry.subject, user)} />
                     ) : (
                       <span className="text-xs text-gray-300 italic">N/A</span>
                     )}
