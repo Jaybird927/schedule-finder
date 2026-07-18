@@ -176,6 +176,7 @@ export default function HomePage() {
 
   const [schoolFilter, setSchoolFilter] = useState<0 | 1 | 2>(0);
   const [subjectFilters, setSubjectFilters] = useState<string[]>([]);
+  const [duringPeriod, setDuringPeriod] = useState<number | null>(null);
   const [sortBy, setSortBy] = useState<SortOption>('newest');
   const [classmatesOnly, setClassmatesOnly] = useState(false);
 
@@ -199,7 +200,10 @@ export default function HomePage() {
   const myUser = users.find((u) => u.id === myUserId);
 
   const activeFilterCount =
-    (schoolFilter !== 0 ? 1 : 0) + subjectFilters.length + (classmatesOnly ? 1 : 0);
+    (schoolFilter !== 0 ? 1 : 0) +
+    subjectFilters.length +
+    (subjectFilters.length > 0 && duringPeriod !== null ? 1 : 0) +
+    (classmatesOnly ? 1 : 0);
 
   const filteredUsers = useMemo(() => {
     let result = users.filter((u) => u.id !== myUserId);
@@ -219,6 +223,14 @@ export default function HomePage() {
       );
     }
 
+    if (subjectFilters.length > 0 && duringPeriod !== null) {
+      result = result.filter((u) =>
+        u.schedule.some(
+          (s) => s.period === duringPeriod && subjectFilters.includes(s.subject)
+        )
+      );
+    }
+
     if (classmatesOnly && myUser) {
       result = result.filter((u) => {
         if (u.school !== myUser.school) return false;
@@ -235,11 +247,12 @@ export default function HomePage() {
     else result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
     return result;
-  }, [users, search, schoolFilter, subjectFilters, sortBy, classmatesOnly, myUser, myUserId]);
+  }, [users, search, schoolFilter, subjectFilters, duringPeriod, sortBy, classmatesOnly, myUser, myUserId]);
 
   const clearFilters = () => {
     setSchoolFilter(0);
     setSubjectFilters([]);
+    setDuringPeriod(null);
     setClassmatesOnly(false);
     setSortBy('newest');
   };
@@ -359,13 +372,15 @@ export default function HomePage() {
               {SUBJECTS.map((subject) => (
                 <button
                   key={subject}
-                  onClick={() =>
-                    setSubjectFilters((prev) =>
-                      prev.includes(subject)
+                  onClick={() => {
+                    setSubjectFilters((prev) => {
+                      const next = prev.includes(subject)
                         ? prev.filter((s) => s !== subject)
-                        : [...prev, subject]
-                    )
-                  }
+                        : [...prev, subject];
+                      if (next.length === 0) setDuringPeriod(null);
+                      return next;
+                    });
+                  }}
                   className={`px-3 py-1 rounded-full text-xs font-medium border transition ${
                     subjectFilters.includes(subject)
                       ? `${SUBJECT_COLORS[subject]} ring-2 ring-offset-1 ring-current`
@@ -376,6 +391,28 @@ export default function HomePage() {
                 </button>
               ))}
             </div>
+
+            {/* During sub-filter */}
+            {subjectFilters.length > 0 && (
+              <div className="mt-3 pl-3 border-l-2 border-indigo-100">
+                <p className="text-xs font-semibold text-indigo-400 mb-2">during</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {[0, 1, 2, 3, 4, 5, 6].map((period) => (
+                    <button
+                      key={period}
+                      onClick={() => setDuringPeriod((p) => (p === period ? null : period))}
+                      className={`px-2.5 py-1 rounded-full text-xs font-medium border transition ${
+                        duringPeriod === period
+                          ? 'bg-indigo-600 text-white border-indigo-600'
+                          : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'
+                      }`}
+                    >
+                      {period === 0 ? 'Zero' : `P${period}`}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Sort */}
