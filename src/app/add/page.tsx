@@ -33,7 +33,7 @@ function AddPageInner() {
 
     fetch('/api/users')
       .then(r => r.json())
-      .then((users: { id: string; name: string; school: number; schedule: { period: number; subject: string }[] }[]) => {
+      .then((users: { id: string; name: string; school: string; schedule: { period: number; subject: string }[] }[]) => {
         const me = users.find(u => u.id === id);
         if (!me) { router.push('/add'); return; }
 
