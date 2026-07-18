@@ -10,15 +10,17 @@ type Step = 'info' | 'schedule';
 export default function AddPage() {
   const router = useRouter();
   const [step, setStep] = useState<Step>('info');
-  const [name, setName] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastInitial, setLastInitial] = useState('');
   const [school, setSchool] = useState<1 | 2 | null>(null);
+  const name = `${firstName.trim()} ${lastInitial.trim().toUpperCase()}`.trim();
   const [userId, setUserId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
   async function handleInfoSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!name.trim() || !school) return;
+    if (!firstName.trim() || !lastInitial.trim() || !school) return;
     setSaving(true);
     setError('');
     try {
@@ -106,16 +108,32 @@ export default function AddPage() {
               <label className="block text-sm font-semibold text-gray-700 mb-2">
                 What&apos;s your name?
               </label>
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Enter your name..."
-                maxLength={50}
-                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-400 text-gray-900 placeholder-gray-400"
-                required
-                autoFocus
-              />
+              <div className="flex gap-3">
+                <input
+                  type="text"
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  placeholder="First name"
+                  maxLength={30}
+                  className="flex-1 px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-400 text-gray-900 placeholder-gray-400"
+                  required
+                  autoFocus
+                />
+                <input
+                  type="text"
+                  value={lastInitial}
+                  onChange={(e) => setLastInitial(e.target.value.replace(/[^a-zA-Z]/g, '').slice(0, 1))}
+                  placeholder="Last initial"
+                  maxLength={1}
+                  className="w-28 px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-400 text-gray-900 placeholder-gray-400 text-center font-bold uppercase"
+                  required
+                />
+              </div>
+              {firstName && lastInitial && (
+                <p className="mt-2 text-xs text-gray-400">
+                  You&apos;ll appear as <span className="font-semibold text-gray-600">{firstName.trim()} {lastInitial.toUpperCase()}</span>
+                </p>
+              )}
             </div>
 
             <div className="mb-6">
