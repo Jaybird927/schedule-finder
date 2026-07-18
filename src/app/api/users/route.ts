@@ -11,16 +11,16 @@ export async function GET() {
 
 export async function POST(req: Request) {
   const body = await req.json();
-  const { name, school } = body as { name: string; school: string };
+  const { name, school, currentSchool } = body as { name: string; school: string; currentSchool: number };
 
-  if (!name?.trim() || !['PCY', 'PCR', 'LCE', 'new'].includes(school)) {
+  if (!name?.trim() || !['PCY', 'PCR', 'LCE', 'new'].includes(school) || ![1, 2].includes(currentSchool)) {
     return NextResponse.json({ error: 'Invalid input' }, { status: 400 });
   }
 
   const user = await prisma.user.upsert({
     where: { name_school: { name: name.trim(), school } },
-    update: {},
-    create: { name: name.trim(), school },
+    update: { currentSchool },
+    create: { name: name.trim(), school, currentSchool },
   });
 
   return NextResponse.json(user);

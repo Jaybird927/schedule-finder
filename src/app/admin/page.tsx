@@ -9,6 +9,7 @@ type UserData = {
   id: string;
   name: string;
   school: string;
+  currentSchool: number;
   createdAt: string;
   schedule: ScheduleEntry[];
 };
@@ -43,6 +44,9 @@ function ScheduleRow({ user, onDelete }: { user: UserData; onDelete: () => void 
               <span className="font-bold text-gray-900">{user.name}</span>
               <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${SCHOOL_COLORS[user.school]?.badge ?? 'bg-gray-100 text-gray-500'}`}>
                 {user.school === 'new' ? "I'm new" : user.school}
+              </span>
+              <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${user.currentSchool === 1 ? 'bg-indigo-100 text-indigo-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                S{user.currentSchool}
               </span>
             </div>
             <p className="text-xs text-gray-400 mt-0.5">
@@ -176,6 +180,8 @@ export default function AdminPage() {
     .filter(u => !search.trim() || u.name.toLowerCase().includes(search.toLowerCase()));
 
   const schoolCounts = SCHOOLS.map(s => ({ ...s, count: users.filter(u => u.school === s.id).length }));
+  const s1Count = users.filter(u => u.currentSchool === 1).length;
+  const s2Count = users.filter(u => u.currentSchool === 2).length;
 
   return (
     <main className="min-h-screen bg-gray-50">
@@ -195,17 +201,23 @@ export default function AdminPage() {
         </div>
 
         {/* Stats */}
-        <div className="mt-5 max-w-3xl mx-auto grid grid-cols-5 gap-2">
-          <div className="bg-white/10 rounded-2xl px-3 py-3 text-center">
-            <p className="text-2xl font-extrabold">{users.length}</p>
-            <p className="text-xs text-gray-400 mt-0.5">Total</p>
+        <div className="mt-5 max-w-3xl mx-auto space-y-2">
+          <div className="grid grid-cols-3 gap-2">
+            {[{ label: 'Total', value: users.length }, { label: 'School 1', value: s1Count }, { label: 'School 2', value: s2Count }].map(s => (
+              <div key={s.label} className="bg-white/10 rounded-2xl px-3 py-3 text-center">
+                <p className="text-2xl font-extrabold">{s.value}</p>
+                <p className="text-xs text-gray-400 mt-0.5">{s.label}</p>
+              </div>
+            ))}
           </div>
-          {schoolCounts.map(s => (
-            <div key={s.id} className="bg-white/10 rounded-2xl px-3 py-3 text-center">
-              <p className="text-2xl font-extrabold">{s.count}</p>
-              <p className="text-xs text-gray-400 mt-0.5">{s.label}</p>
-            </div>
-          ))}
+          <div className="grid grid-cols-4 gap-2">
+            {schoolCounts.map(s => (
+              <div key={s.id} className="bg-white/10 rounded-2xl px-3 py-2 text-center">
+                <p className="text-xl font-extrabold">{s.count}</p>
+                <p className="text-xs text-gray-400 mt-0.5">{s.label}</p>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 

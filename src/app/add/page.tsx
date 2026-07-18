@@ -17,6 +17,7 @@ function AddPageInner() {
   const [firstName, setFirstName] = useState('');
   const [lastInitial, setLastInitial] = useState('');
   const [school, setSchool] = useState<SchoolId | null>(null);
+  const [currentSchool, setCurrentSchool] = useState<1 | 2 | null>(null);
   const name = `${firstName.trim()} ${lastInitial.trim().toUpperCase()}`.trim();
   const [userId, setUserId] = useState<string | null>(null);
   const [pendingSchedule, setPendingSchedule] = useState<Partial<Record<number, string>>>({});
@@ -33,7 +34,7 @@ function AddPageInner() {
 
     fetch('/api/users')
       .then(r => r.json())
-      .then((users: { id: string; name: string; school: string; schedule: { period: number; subject: string }[] }[]) => {
+      .then((users: { id: string; name: string; school: string; currentSchool: number; schedule: { period: number; subject: string }[] }[]) => {
         const me = users.find(u => u.id === id);
         if (!me) { router.push('/add'); return; }
 
@@ -41,6 +42,7 @@ function AddPageInner() {
         setFirstName(parts.slice(0, -1).join(' ') || me.name);
         setLastInitial(parts[parts.length - 1] ?? '');
         setSchool(me.school as SchoolId);
+        setCurrentSchool(me.currentSchool as 1 | 2);
         setUserId(me.id);
 
         const sched: Partial<Record<number, string>> = {};
@@ -55,14 +57,14 @@ function AddPageInner() {
 
   async function handleInfoSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!firstName.trim() || !lastInitial.trim() || !school) return;
+    if (!firstName.trim() || !lastInitial.trim() || !school || !currentSchool) return;
     setSaving(true);
     setError('');
     try {
       const res = await fetch('/api/users', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, school }),
+        body: JSON.stringify({ name, school, currentSchool }),
       });
       if (!res.ok) throw new Error();
       const user = await res.json();
@@ -199,8 +201,8 @@ function AddPageInner() {
                 </p>
               )}
             </div>
-            <div className="mb-6">
-              <label className="block text-sm font-semibold text-gray-700 mb-3">Which elementary school are you in?</label>
+            <div className="mb-5">
+              <label className="block text-sm font-semibold text-gray-700 mb-3">Which old school did you go to?</label>
               <div className="grid grid-cols-2 gap-3">
                 {SCHOOLS.map(s => (
                   <button key={s.id} type="button" onClick={() => setSchool(s.id as SchoolId)}
@@ -215,7 +217,24 @@ function AddPageInner() {
                 ))}
               </div>
             </div>
-            <button type="submit" disabled={!firstName.trim() || !lastInitial.trim() || !school || saving}
+
+            <div className="mb-6">
+              <label className="block text-sm font-semibold text-gray-700 mb-3">Which school are you in now?</label>
+              <div className="grid grid-cols-2 gap-3">
+                {([1, 2] as const).map(s => (
+                  <button key={s} type="button" onClick={() => setCurrentSchool(s)}
+                    className={`p-4 rounded-xl border-2 font-bold text-lg transition ${
+                      currentSchool === s
+                        ? s === 1 ? 'border-indigo-500 bg-indigo-50 text-indigo-700' : 'border-emerald-500 bg-emerald-50 text-emerald-700'
+                        : 'border-gray-200 text-gray-500 hover:border-gray-300 hover:bg-gray-50'
+                    }`}
+                  >
+                    School {s} {currentSchool === s && '✓'}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <button type="submit" disabled={!firstName.trim() || !lastInitial.trim() || !school || !currentSchool || saving}
               className="w-full py-3 rounded-full font-bold text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed transition">
               {saving ? 'Setting up...' : 'Next →'}
             </button>

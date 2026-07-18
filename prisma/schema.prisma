@@ -10,7 +10,8 @@ datasource db {
 model User {
   id        String     @id @default(cuid())
   name      String
-  school    String
+  school        String
+  currentSchool Int    @default(1)
   schedule  Schedule[]
   createdAt DateTime   @default(now())
 

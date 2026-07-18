@@ -9,6 +9,7 @@ type UserData = {
   id: string;
   name: string;
   school: string;
+  currentSchool: number;
   createdAt: string;
   schedule: ScheduleEntry[];
 };
@@ -37,9 +38,14 @@ function PersonCard({ user, onClick }: { user: UserData; onClick: () => void }) 
     >
       <div className="flex items-start justify-between gap-2 mb-2">
         <h3 className="font-bold text-gray-900 text-base leading-tight truncate">{user.name}</h3>
-        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full flex-shrink-0 ${SCHOOL_COLORS[user.school]?.badge ?? 'bg-gray-100 text-gray-500'}`}>
-          {user.school === 'new' ? 'New' : user.school}
-        </span>
+        <div className="flex flex-col items-end gap-1 flex-shrink-0">
+          <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${SCHOOL_COLORS[user.school]?.badge ?? 'bg-gray-100 text-gray-500'}`}>
+            {user.school === 'new' ? 'New' : user.school}
+          </span>
+          <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${user.currentSchool === 1 ? 'bg-indigo-100 text-indigo-700' : 'bg-emerald-100 text-emerald-700'}`}>
+            S{user.currentSchool}
+          </span>
+        </div>
       </div>
       <div className="flex flex-wrap gap-1 mt-1">
         {displaySubjects.map((subject) => (
@@ -92,7 +98,9 @@ function PersonModal({
           <div className="flex items-start justify-between">
             <div>
               <h2 className="text-2xl font-extrabold">{user.name}</h2>
-              <p className="text-white/70 mt-0.5 text-sm">{user.school === 'new' ? "I'm new" : user.school}</p>
+              <p className="text-white/70 mt-0.5 text-sm">
+                Old school: {user.school === 'new' ? "I'm new" : user.school} · School {user.currentSchool}
+              </p>
             </div>
             <button
               onClick={onClose}
@@ -163,6 +171,7 @@ export default function HomePage() {
   const [myUserId, setMyUserId] = useState<string | null>(null);
 
   const [schoolFilter, setSchoolFilter] = useState<string>('');
+  const [currentSchoolFilter, setCurrentSchoolFilter] = useState<0 | 1 | 2>(0);
   const [subjectFilters, setSubjectFilters] = useState<string[]>([]);
   const [duringPeriod, setDuringPeriod] = useState<number | null>(null);
   const [sortBy, setSortBy] = useState<SortOption>('newest');
@@ -189,6 +198,7 @@ export default function HomePage() {
 
   const activeFilterCount =
     (schoolFilter !== '' ? 1 : 0) +
+    (currentSchoolFilter !== 0 ? 1 : 0) +
     subjectFilters.length +
     (subjectFilters.length > 0 && duringPeriod !== null ? 1 : 0) +
     (classmatesOnly ? 1 : 0);
@@ -203,6 +213,10 @@ export default function HomePage() {
 
     if (schoolFilter !== '') {
       result = result.filter((u) => u.school === schoolFilter);
+    }
+
+    if (currentSchoolFilter !== 0) {
+      result = result.filter((u) => u.currentSchool === currentSchoolFilter);
     }
 
     if (subjectFilters.length > 0) {
@@ -235,10 +249,11 @@ export default function HomePage() {
     else result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
     return result;
-  }, [users, search, schoolFilter, subjectFilters, duringPeriod, sortBy, classmatesOnly, myUser, myUserId]);
+  }, [users, search, schoolFilter, currentSchoolFilter, subjectFilters, duringPeriod, sortBy, classmatesOnly, myUser, myUserId]);
 
   const clearFilters = () => {
     setSchoolFilter('');
+    setCurrentSchoolFilter(0);
     setSubjectFilters([]);
     setDuringPeriod(null);
     setClassmatesOnly(false);
@@ -256,7 +271,7 @@ export default function HomePage() {
           <div className="mt-5 flex flex-wrap items-center gap-2">
             <div className="bg-white/20 rounded-2xl px-4 py-2 text-sm backdrop-blur">
               Logged in as <span className="font-bold">{myUser.name}</span>{' '}
-              <span className="text-white/60">· {myUser.school === 'new' ? "I'm new" : myUser.school}</span>
+              <span className="text-white/60">· School {myUser.currentSchool} · {myUser.school === 'new' ? "I'm new" : myUser.school}</span>
             </div>
             <Link
               href="/add?edit=true"
@@ -335,24 +350,37 @@ export default function HomePage() {
       {/* Filter panel */}
       {filtersOpen && (
         <div className="mx-4 mb-3 p-5 bg-white rounded-2xl shadow-md border border-gray-100">
-          {/* School */}
+          {/* Current school */}
           <div className="mb-4">
             <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">School</p>
+            <div className="flex gap-2">
+              {([0, 1, 2] as const).map(s => (
+                <button key={s} onClick={() => setCurrentSchoolFilter(s)}
+                  className={`px-3 py-1.5 rounded-full text-sm font-medium border transition ${
+                    currentSchoolFilter === s
+                      ? s === 0 ? 'bg-indigo-600 text-white border-indigo-600' : s === 1 ? 'bg-indigo-100 text-indigo-700 border-indigo-300' : 'bg-emerald-100 text-emerald-700 border-emerald-300'
+                      : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
+                  }`}
+                >
+                  {s === 0 ? 'All' : `School ${s}`}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Old school */}
+          <div className="mb-4">
+            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Old School</p>
             <div className="flex flex-wrap gap-2">
-              <button
-                onClick={() => setSchoolFilter('')}
+              <button onClick={() => setSchoolFilter('')}
                 className={`px-3 py-1.5 rounded-full text-sm font-medium border transition ${schoolFilter === '' ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}
               >
                 All
               </button>
               {SCHOOLS.map(s => (
-                <button
-                  key={s.id}
-                  onClick={() => setSchoolFilter(schoolFilter === s.id ? '' : s.id)}
+                <button key={s.id} onClick={() => setSchoolFilter(schoolFilter === s.id ? '' : s.id)}
                   className={`px-3 py-1.5 rounded-full text-sm font-medium border transition ${
-                    schoolFilter === s.id
-                      ? SCHOOL_COLORS[s.id].badge + ' border-current'
-                      : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
+                    schoolFilter === s.id ? SCHOOL_COLORS[s.id].badge + ' border-current' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
                   }`}
                 >
                   {s.label}
